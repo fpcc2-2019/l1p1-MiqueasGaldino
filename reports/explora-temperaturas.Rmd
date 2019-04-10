@@ -11,6 +11,9 @@ library(tidyverse)
 library(here)
 library(lubridate)
 library(ggbeeswarm)
+library(qicharts)
+library(gridExtra)
+
 theme_set(theme_bw())
 ```
 
@@ -18,31 +21,109 @@ theme_set(theme_bw())
 climas = read_csv(here::here("data/clima_cg_jp-semanal.csv"), 
                   col_types = "cTdddddd")
 
-glimpse(climas)
+
 ```
 
-## Temperatura
-
 ### Onde é mais quente?
+```{r}
+
+cg = climas %>%
+    filter(ano >= 1992 )
+    
+
+temp_med = cg %>% 
+    ggplot(aes(x = cidade, y = tmedia, group = cidade)) + 
+    geom_boxplot(color="black",fill="white",width = .2, outlier.colour = NA, coef = 1000) + geom_jitter(
+        
+        width = 0.3,
+        alpha = .4,
+        size = 1,
+        color = "green") + xlab("Cidade") + ylab("Temperatura Média")  
+
+temp_max = cg %>% 
+    ggplot(aes(x = cidade, y = tmax, group = cidade )) + 
+    geom_boxplot(color="black",fill="white",width = .2, outlier.colour = NA, coef = 1000)+ geom_jitter(
+        
+        width = 0.3,
+        alpha = .4,
+        size = 1,
+        color = "salmon") + xlab("Cidade") + ylab("Temperatura Máxima") 
 
 
-### As temperaturas máximas semanais (o pico do calor) são tão diferentes quanto as médias? Mais?  
+grid.arrange(temp_med,temp_max,ncol = 2)
+```
+
+Dado a pergunta inferida, o questionamento inicial a ser feito é como determinar a partir dos dados qual cidade é mais quente. Para isso, duas visualizações foram propostas a fim de conseguir determinar a melhor forma de avaliar as informações, um gráfico de temperatura máxima e um gŕafico de temperatura média. Na visualização a direita, temos boxplots das duas cidades apresentando a distribuição dos dados em sua temperatura maxima (tmax), neste caso percebe-se que campina apresenta uma dispersão maior dos dados de tmax, em relação a capital. Entretanto, nota-se que há "sobreposição" dos dados analisados, a mediana representada pelo segunda quartil etsão bem proxima, apresentando uma concentração de dados de temperatura naquela região nos dois municípios. Visto esta maior dificuldade em determinar a resposta do questionamento por tal visualização, além de que para aferir uma cidade mais quente pode-se levar em consideração qual cidade como um todo apresenta em média uma temperatura maior, diagramas de temperatura média, podem no auxiliar de forma mais clara. Para isso, o gráfico com os boxplots a esquerda apresenta os resultados de temperatura média de cada cidade. Percebe-se que nas duas cidades existe uma assimetria para cima, ou seja existe uma maior concentração entre os dados entre o segundo e terceiro quartil, todavia nota-se que campina grande continua com uma maior dispersão nos seus dados (tamanho da caixa) e além disso é nótorio que o diagrama de caixa que representa a capital se apresenta em uam faixa de valores mais elevados de temperatura. A assimetria analisada, e localização dos pontos em uma setor com valores de temperatura mais alto, nos leva a conclusão de que João Pessoa é mais quente que Campina.
 
 
-### Quais os meses mais quentes e mais frios? 
+#Qual foi o São João  mais frio de CG que está nos nossos dados?
+```{r}
+
+cg %>% 
+    filter(cidade == "Campina Grande", mes == 6) %>%
+    ggplot(aes(x = ano, y = tmedia, group = ano)) +
+    geom_boxplot(width = .3, outlier.colour = NA, coef = 1000) + geom_jitter(
+        
+        width = 0.3,
+        alpha = .4,
+        size = 1,
+        color = "green") + xlab("Ano") + ylab("Temperatura Média") + ggtitle("Temperaturas médias no mês de São João em Campina Grande") + theme(plot.title = element_text(hjust = 0.5))
+    
 
 
-### Qual foi o São João  mais frio de CG que está nos nossos dados?
+```
+
+Para avaliar o São João de Campina mais frio, deve-se levar em consideração quais as caracteristicas que podemos considerar como um são joão mais frio. Para a reposta dessa questão, foi escolhida a temperatura média como dados a serem analisados, isso porque para considerar o são joão mais frio, parte-se da ideia de que o mesmo seria o mês que em niveis gerais apresentou taxas de temperaturas menores, ou seja, não foi considerado o são joão que atingiu os menores picos de temperatura, mas sim o mês que em média os dados ficaram mais concentrados em graus menores. As observações então foram feitas a partir de boxplots que apresentavam as informações de temperatura para cada mês de são joão em cada ano, vale ressaltar que não existem dados desse periodo entre 1992 e 1994, e nem nos anos de 2000 e 2001, como pode ser observado no gráfico. Alguns pontos podem ser levantados da visualização dos dados propostos, uma delas é que nota-se em geral uma variação nos dados na maioria dos anos, evidenciado pela amplitude da caixa nos pontos observados, outra questão além dessa dispersão, é que percebe-se que entre os anos 2002 e 2008 existe uma localização dos diagramas mais abaixo que em outros periodos de anos, evidenciando uma possivel menor temperatura nesse intervalo de tempo. Dentre esse periodo observado, nota-se que o ano de 2004 além de possuir uma dispersão menor dos dados, há uma assimetria para baixo na caixa, evidenciando uma concentração de dados nessa região, se notarmos os pontos, percebemos que 3 medições se encontram proximo ao primeiro e segundo quartil, e estão em temperaturas que vão de 22  graus até níveis mais baixos. Dado esses fatos, nota-se que a maior quantidade de médições de temperatura média que se concentram em um menor valor se dá no ano de 2004, evidenciando assim, um possível São Joao mais frio.
+# No geral, onde chove mais?
+```{r}
+
+
+campina_temperatura = cg %>%
+    filter(cidade == "Campina Grande", ano >= 1992)
+
+
+jp_temperatura = cg %>%
+    filter(cidade == "João Pessoa", ano >= 1992)
+    
+
+dens_chuvas_jp = jp_temperatura %>% 
+    ggplot(aes(x = chuva)) + 
+    geom_density(fill = "blue") + xlab("Indice Pluviométrico (mm)") + ylab("Densidade") + ggtitle("João Pessoa")
+
+
+dens_chuvas_cg = campina_temperatura %>% 
+    ggplot(aes(x = chuva)) + 
+    geom_density(fill = "salmon") + xlab("Indice Pluviométrico (mm)") + ylab("Densidade") + ggtitle("Campina Grande") 
+
+
+grid.arrange(dens_chuvas_cg,dens_chuvas_jp,ncol = 2)
+
+cg %>%
+
+    ggplot(aes(x = chuva, color = cidade, fill = cidade)) + 
+    geom_density(alpha = .4) +  xlab("Indice Pluviométrico (mm)") + ylab("Densidade")
+
+```
+
+ Para responder tal questão, gráficos de densidade foram escolhidos para analisar a quantidade de chuva que ocorre em cada cidade e sua dispersão. Para melhor visualização, primeiro comparamos lado a lado a distribuição de cada cidade, e posteriormente sobrepomos uma a outra para melhor observação da comparação. Nas duas visualizações, nota-se algumas características que auxiliam na resposta do questionamento, percebe-se que existe uma concentração maior proximo ao valor zero em Campina Grande, ademais se nota uma concentração de dados entre 0 e 50 em campina grande, enquanto que em João pessoa, uma concentração parecida ocorre porém indo de 0 a 100 nos indices pluviométricos. Além do mais nota-se uma cauda maior a direita em João pessoa, chegando a 300. Dado a essas informações observadas, conclui-se que devido a uma disperção maior dos dados em João pessoa nos graficos apresentados, a capital é a Cidade que chove mais nesse comparativo.
+
+# A distribuição é diferente em meses específicos? 
+
+```{r}
+
+    cg %>%
+    filter( mes>=1) %>% 
+
+    ggplot(aes(x = chuva, color = cidade, fill = cidade)) + 
+    geom_density(alpha = .4) +
+    facet_wrap(~ mes)  + xlab("Indice Pluviométrico (mm)") + ylab("Densidade") + ggtitle("Análise de Dispersão de chuva ao decorrer dos Meses") 
+
+    
+```
+
+Para a resposta ao questionamento, mais uma vez o grafico de densidade foi utilizado para analisar a distribuição dos dados de chuva, de cada mês ao longo de todos os anos. Nota-se que a distribuição possui distinções em relação aos meses principalmente quando analisados por périodos que levam em consideração as estações climáticas. Como pode-se aferir, meses situados na primavera/verão, possuem uma concentração de medições pluviométricas em torno de zero, nota-se mais amplamente no caso de mês de novembro, onde há uma grande concentração de resultados em 0. Em compensação existe uma maior dispersão dos dados em meses considerados de inverno, como os meses 6 e 7 em que apesar de haver mais recorrencias concentradas a direita, a variedade dos resultados de chuva é maior e mais dispersa, apontando que os indices de chuva nesses meses ocorreram com maiores valores.
 
 
 
-## Chuva
 
-### Quanto chove por semana em JP e CG?
-
-Como é a distribuição do volume de chuvas por semana em JP e CG? A chuva varia mais ou menos que a temperatura? O formato da distribuição é igual? 
-
-### No geral, onde chove mais?
-
-### A distribuição é diferente em meses específicos? 
 
